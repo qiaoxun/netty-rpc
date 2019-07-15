@@ -11,7 +11,6 @@ import io.netty.util.CharsetUtil;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
 import java.util.Map;
 
 @ChannelHandler.Sharable
@@ -32,6 +31,18 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
         } else {
             System.err.println("msg is " + msg);
             RpcRequest rpcRequest = JSON.parseObject(msg.toString(), RpcRequest.class);
+            Class<?>[] parameterTypes = rpcRequest.getParameterTypes();
+            Object[] parameters = rpcRequest.getParameters();
+            Object[] actualParameters = new Object[parameters.length];
+
+            for (int i = 0; i < parameters.length; i++) {
+                Class<?> clz = parameterTypes[i];
+                Object param = parameters[i];
+                actualParameters[i] = JSON.parseObject(param.toString(), clz);
+            }
+
+            rpcRequest.setParameters(actualParameters);
+
             RpcResponse rpcResponse = new RpcResponse();
             rpcResponse.setRequestId(rpcRequest.getId());
 
@@ -55,9 +66,11 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
 
         Object serviceBean = serviceMap.get(className);
         if (null != serviceBean) {
+            System.out.println("serviceBean is " + serviceBean);
+            System.out.println("parameters is " + parameters[0]);
             Class clazz = serviceBean.getClass();
             Method method = clazz.getMethod(methodName, parameterTypes);
-            Object object = method.invoke(clazz, parameters);
+            Object object = method.invoke(serviceBean, parameters);
             return object;
         } else {
             throw new RuntimeException("class not found: " + className);

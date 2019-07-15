@@ -24,6 +24,8 @@ public class RpcServiceFactory implements InvocationHandler {
 
         rpcClient.send(rpcRequest);
 
+        System.out.println("Dynamic invoke");
+
         return null;
     }
 }
